@@ -16,15 +16,9 @@ use crate::game::scripting::tsc::text_script::TextScript;
 
 use super::scripting::tsc::text_script::TextScriptEncoding;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct NpcType {
     name: String,
-}
-
-impl Clone for NpcType {
-    fn clone(&self) -> Self {
-        Self { name: self.name.clone() }
-    }
 }
 
 impl NpcType {
@@ -37,15 +31,9 @@ impl NpcType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Tileset {
     pub(crate) name: String,
-}
-
-impl Clone for Tileset {
-    fn clone(&self) -> Self {
-        Self { name: self.name.clone() }
-    }
 }
 
 impl Tileset {
@@ -67,15 +55,9 @@ impl Tileset {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Background {
     name: String,
-}
-
-impl Clone for Background {
-    fn clone(&self) -> Self {
-        Self { name: self.name.clone() }
-    }
 }
 
 impl Background {
@@ -196,7 +178,7 @@ pub struct PxPackStageData {
     pub offset_bg: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StageData {
     pub name: String,
     pub name_jp: String,
@@ -209,24 +191,6 @@ pub struct StageData {
     pub background_color: Color,
     pub npc1: NpcType,
     pub npc2: NpcType,
-}
-
-impl Clone for StageData {
-    fn clone(&self) -> Self {
-        StageData {
-            name: self.name.clone(),
-            name_jp: self.name_jp.clone(),
-            map: self.map.clone(),
-            boss_no: self.boss_no,
-            tileset: self.tileset.clone(),
-            pxpack_data: self.pxpack_data.clone(),
-            background: self.background.clone(),
-            background_type: self.background_type,
-            background_color: self.background_color,
-            npc1: self.npc1.clone(),
-            npc2: self.npc2.clone(),
-        }
-    }
 }
 
 const NXENGINE_BACKDROPS: [&str; 15] = [
@@ -263,12 +227,12 @@ fn zero_index(s: &[u8]) -> usize {
 }
 
 fn from_encoding(s: &[u8], encoding: Option<TextScriptEncoding>) -> String {
-    let encoding: Option<&encoding_rs::Encoding> = encoding.map(TextScriptEncoding::into);
     if let Some(encoding) = encoding {
-        encoding.decode_without_bom_handling(s).0.into_owned()
-    } else {
-        from_shift_jis(s)
+        let encoding: &encoding_rs::Encoding = encoding.into();
+        return encoding.decode_without_bom_handling(s).0.into_owned();
     }
+
+    from_shift_jis(s)
 }
 
 fn from_shift_jis(s: &[u8]) -> String {
@@ -276,6 +240,11 @@ fn from_shift_jis(s: &[u8]) -> String {
 }
 
 fn from_csplus_stagetbl(s: &[u8], is_switch: bool, encoding: Option<TextScriptEncoding>) -> String {
+    if let Some(encoding) = encoding {
+        let encoding: &encoding_rs::Encoding = encoding.into();
+        return encoding.decode_without_bom_handling(s).0.into_owned();
+    }
+
     if is_switch {
         from_utf8(s).unwrap_or("").trim_matches('\0').to_string()
     } else {
@@ -459,9 +428,9 @@ impl StageData {
                 let tileset = from_encoding(&ts_buf[0..zero_index(&ts_buf)], encoding);
                 let map = from_encoding(&map_buf[0..zero_index(&map_buf)], encoding);
                 let background = from_encoding(&back_buf[0..zero_index(&back_buf)], encoding);
-                let npc1 = from_encoding(&npc1_buf[0..zero_index(&npc1_buf)],encoding);
-                let npc2 = from_encoding(&npc2_buf[0..zero_index(&npc2_buf)],encoding);
-                let name = from_encoding(&name_buf[0..zero_index(&name_buf)],encoding);
+                let npc1 = from_encoding(&npc1_buf[0..zero_index(&npc1_buf)], encoding);
+                let npc2 = from_encoding(&npc2_buf[0..zero_index(&npc2_buf)], encoding);
+                let name = from_encoding(&name_buf[0..zero_index(&name_buf)], encoding);
 
                 let stage = StageData {
                     name: name.clone(),
